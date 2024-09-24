@@ -3,16 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Swiss Railway Lines on OSM</title>
+  <title>Swiss Railway Lines by Track Gauge</title>
   
   <!-- Include Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   
-  <!-- Optional: Add custom styling for the map container -->
+  <!-- Optional: Add custom styling for the map and legend -->
   <style>
     #map {
       height: 600px;
       width: 100%;
+    }
+    .legend {
+      background-color: white;
+      padding: 10px;
+      line-height: 18px;
+      border-radius: 5px;
+    }
+    .legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.7;
     }
   </style>
 </head>
@@ -24,8 +37,19 @@
   <!-- Include Leaflet JavaScript -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- Script to load the GeoJSON data from the URL and display it on the map -->
+  <!-- Script to load the GeoJSON data and display it on the map -->
   <script>
+    // Define a function to determine the color based on track gauge
+    function getColorByGauge(gauge) {
+      switch (gauge) {
+        case 'mm1435': return 'blue'; // Standard gauge
+        case 'mm1000': return 'green'; // Meter gauge
+        case 'mm800': return 'purple'; // Narrow gauge
+        case 'mm850': return 'orange'; // Example narrow gauge
+        default: return 'gray'; // Unknown or other gauges
+      }
+    }
+
     // Initialize the map
     var map = L.map('map').setView([46.8, 8.3], 8); // Center the map on Switzerland
     
@@ -38,19 +62,44 @@
     fetch('https://data.sbb.ch/api/explore/v2.1/catalog/datasets/infrastrukturbetreiberinnen/exports/geojson?lang=de&timezone=UTC')
       .then(response => response.json())
       .then(geojsonData => {
-        // Add the GeoJSON data to the map
+        // Add the GeoJSON data to the map, with colors based on the track gauge
         L.geoJSON(geojsonData, {
           style: function(feature) {
-            return { color: 'blue', weight: 3 };
+            var gauge = feature.properties.operator_gauge; // Get the gauge from the properties
+            return {
+              color: getColorByGauge(gauge), 
+              weight: 3
+            };
           },
           onEachFeature: function (feature, layer) {
             if (feature.properties && feature.properties.line_number) {
-              layer.bindPopup("Line: " + feature.properties.line_number + "<br>Operator: " + feature.properties.operator_name);
+              layer.bindPopup("Line: " + feature.properties.line_number + "<br>Operator: " + feature.properties.operator_name + "<br>Gauge: " + feature.properties.operator_gauge);
             }
           }
         }).addTo(map);
       })
       .catch(error => console.error('Error fetching GeoJSON data:', error));
+
+    // Add a legend to the map
+    var legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'legend'),
+          gauges = ['mm1435', 'mm1000', 'mm800', 'mm850'],
+          colors = ['blue', 'green', 'purple', 'orange'];
+
+      div.innerHTML = '<h4>Track Gauge (mm)</h4>';
+      
+      for (var i = 0; i < gauges.length; i++) {
+        div.innerHTML +=
+          '<i style="background:' + colors[i] + '"></i> ' +
+          gauges[i].replace('mm', '') + ' mm<br>';
+      }
+      
+      return div;
+    };
+
+    legend.addTo(map);
   </script>
 
 </body>
