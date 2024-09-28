@@ -89,6 +89,9 @@
             color: 'blue',        // Color of the line (matching 1435 mm gauge)
             weight: 3,
             dashArray: '5, 10'    // Makes the line dashed
+          },
+          pointToLayer: function(feature, latlng) {
+            return null; // Prevent markers for point features
           }
         }).addTo(map);
       })
